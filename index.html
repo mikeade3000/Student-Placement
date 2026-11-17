@@ -36,6 +36,9 @@
   .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;align-items:center}
   .note{font-size:13px;color:var(--muted)}
   .banner{margin:0 0 16px;padding:10px 14px;border-radius:8px;font-size:13px;background:#FBF3D6;border:1px solid #E7D48A;color:#8a6d00;display:none}
+  .notice{margin:0 0 18px;padding:13px 15px;border-radius:8px;font-size:14px;line-height:1.45;background:#FBF3D6;border:1px solid #E7D48A;color:#8a6d00;display:flex;gap:10px;align-items:flex-start}
+  .notice .ic{font-size:18px;line-height:1.2}
+  .notice b{color:#6d5600}
   .msg{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:14px;display:none}
   .msg.ok{display:block;background:#E6F4EC;border:1px solid #9BD1B0;color:var(--green-dark)}
   .msg.bad{display:block;background:#FBE9EA;border:1px solid #E7A5A9;color:var(--err)}
@@ -59,6 +62,14 @@
   .grp-body{display:none;padding:8px 16px 16px}
   .grp.open .grp-body{display:block}
   .grp-dl{display:flex;gap:8px;margin:12px 0 2px}
+  .viewtoggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-right:auto}
+  .viewtoggle button{border:none;background:#fff;color:var(--muted);font:inherit;padding:9px 15px;cursor:pointer}
+  .viewtoggle button.on{background:var(--green);color:#fff;font-weight:600}
+  .areabar{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:#F3F6F4;border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-size:13px;color:var(--ink)}
+  .chip b{color:var(--green-dark)}
+  .chip .n{background:var(--green);color:#fff;border-radius:16px;padding:1px 8px;font-size:12px}
+  .sumline{font-size:13px;color:var(--muted);margin:2px 0 12px}
   .spin{display:inline-block;width:15px;height:15px;border:2px solid #ffffff80;border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:7px}
   .btn.ghost .spin{border:2px solid #0B8A3F55;border-top-color:var(--green)}
   @keyframes sp{to{transform:rotate(360deg)}}
@@ -124,7 +135,7 @@
 <section id="gen" class="panel on">
   <div class="grid">
     <div><label for="fullName">Full name (as on registration)</label><input id="fullName" placeholder="e.g. Nakato Sarah Mary"></div>
-    <div><label for="regNo">Registration number</label><input id="regNo" placeholder="e.g. 2023/BIT/1234/K"><div class="hint">Each registration number may be used a maximum of three times.</div></div>
+    <div><label for="regNo">Registration number</label><input id="regNo" placeholder="e.g. 2024-08-12345"><div class="hint">A registration number can be used any number of times.</div></div>
     <div><label for="dept">Department</label><select id="dept"><option value="">Select department</option></select></div>
     <div>
       <label for="prog">Programme</label>
@@ -148,6 +159,7 @@
 
 <!-- ===================== VERIFY ===================== -->
 <section id="ver" class="panel">
+  <div class="notice"><span class="ic">⚠</span><span><b>Before you authenticate:</b> you must already have been accepted for the internship placement by the organisation. Only authenticate this letter once your placement has been confirmed — authentication files it into the School's official records.</span></div>
   <div class="grid">
     <div class="wide"><label for="vRef">Authentication code printed at the foot of the letter</label><input id="vRef" placeholder="SMC-IT-26-XXXXXX-XXXX" style="font-family:'Courier New',monospace;letter-spacing:1px"></div>
   </div>
@@ -171,9 +183,17 @@
       <label class="btn ghost" style="margin:0">Import JSON<input type="file" id="impJson" accept=".json" hidden></label>
       <button class="btn ghost" id="btnJsonAll">Backup all (JSON)</button>
       <button class="btn ghost" id="btnLock">Lock</button>
-      <input id="recSearch" placeholder="Search within departments" style="max-width:280px">
+      <input id="recSearch" placeholder="Search records" style="max-width:260px">
     </div>
-    <p class="note">Only authenticated letters appear here, straight from Google Sheets. Click a department to view and download its letters.</p>
+    <div class="actions" style="margin-top:12px">
+      <div class="viewtoggle" id="viewToggle">
+        <button data-view="dept" class="on">By department</button>
+        <button data-view="area">By location (proximity)</button>
+      </div>
+      <button class="btn ghost sm" id="btnDownAll">Download all (CSV)</button>
+    </div>
+    <p class="note" id="recHint">Only authenticated letters appear here, straight from Google Sheets. Click a department to view and download its letters.</p>
+    <div id="recSummary"></div>
     <div id="recGroups"></div>
   </div>
 </section>
@@ -190,28 +210,28 @@ const CONFIG = {
   secret: "KIU-SMC-PLACEMENT-2026-CHANGE-ME",
 
   levels: ["Second Year", "Third Year"],
-  periods: ["November 2026"],
+  periods: ["November/December 2026"],
 
   departments: {
     "Department of Information Technology": {
       code: "IT", template: "short", bodyVariant: "it",
       headerDept: "DEPARTMENT OF INFORMATION TECHNOLOGY",
-      defaultPeriod: "November 2026",
-      programmes: ["Bachelor of Information Technology (BIT)", "Bachelor of Library and Information Science (BLIS)"],
+      defaultPeriod: "November/December 2026",
+      programmes: ["Bachelor of Information Technology (BIT)", "Diploma in Information Technology (DIT)", "Bachelor of Library and Information Science (BLIS)"],
       programmesConfirmed: true,
       head: { name: "Dr. Shefiu O. Ganiyu", title: "H.O.D - IT", org: [] }
     },
     "Department of Computer Science": {
       code: "CS", template: "short", bodyVariant: "cs",
       headerDept: "DEPARTMENT OF COMPUTER SCIENCE",
-      defaultPeriod: "November 2026",
-      programmes: ["Bachelor of Computer Science (BCS)", "Diploma Computer Science (DCS)"],
+      defaultPeriod: "November/December 2026",
+      programmes: ["Bachelor of Computer Science (BCS)", "Diploma in Computer Science (DCS)"],
       programmesConfirmed: true,
       head: { name: "Dr. Ramadhan B. Malinga", title: "H.O.D - CS", org: [] }
     },
     "Department of Mathematics and Statistics": {
       code: "MS", template: "math",
-      defaultPeriod: "November 2026",
+      defaultPeriod: "November/December 2026",
       programmes: ["Bachelor of Science in Statistics", "Bachelor of Science in Mathematics"], // NOT in sample letter — replace
       programmesConfirmed: false,
       head: { name: "Dr. Hafez Ibrahim", title: "Head of Department",
@@ -376,7 +396,7 @@ $("#btnGen").onclick = async () => {
     $("#sheet").innerHTML = renderLetter(rec);
     $("#letterWrap").style.display = "block";
     $("#btnPrint").disabled = $("#btnNew").disabled = false;
-    say($("#genMsg"),"ok",`Letter prepared (use ${r.used} of ${r.max} for ${esc(f.reg)}). Authentication code: <span class="ref-big">${code}</span>. It is <b>not yet in the records</b> — enter this code on the <b>Authenticate a letter</b> tab to file it officially AFTER SIGNING AND STAMPING.`);
+    say($("#genMsg"),"ok",`Letter prepared (use ${r.used}${r.max ? " of " + r.max : ""} for ${esc(f.reg)}). Authentication code: <span class="ref-big">${code}</span>. It is <b>not yet in the records</b> — enter this code on the <b>Authenticate a letter</b> tab to file it officially AFTER SIGNING AND STAMPING.`);
     $("#letterWrap").scrollIntoView({behavior:"smooth"});
   } catch(e){ say($("#genMsg"),"bad","Could not reach the backend. Check your connection and the endpoint URL."); }
   finally { busy($("#btnGen"), false); }
@@ -415,8 +435,8 @@ $("#btnVer").onclick = async () => {
 };
 
 // ---- records: server-checked password + department accordion ----
-const openDepts = new Set();
-let recCache = [], recPass = "";
+const openDepts = new Set(), openAreas = new Set();
+let recCache = [], recPass = "", recView = "dept";
 $("#btnUnlock").dataset.label = "Unlock";
 $("#btnUnlock").onclick = async () => {
   const pw = $("#recPass").value;
@@ -452,6 +472,11 @@ function rowHtml(r){
     <td>${longDate(r.authenticatedAt || r.issued)}</td></tr>`;
 }
 function renderRecords(){
+  if (recView === "area") return renderByProximity();
+  renderByDept();
+}
+function renderByDept(){
+  $("#recSummary").innerHTML = "";
   const q = $("#recSearch").value.trim().toLowerCase();
   const order = Object.keys(CONFIG.departments);
   recCache.forEach(r => { if (!order.includes(r.dept)) order.push(r.dept); });
@@ -464,33 +489,146 @@ function renderRecords(){
       ? `<table><thead><tr><th>Code</th><th>Student</th><th>Reg no</th><th>Programme</th><th>Year</th><th>Placement at</th><th>Authenticated</th></tr></thead><tbody>${shown.map(rowHtml).join("")}</tbody></table>`
       : `<p class="note">No authenticated letters in this department yet.</p>`;
     const dl = list.length ? `<div class="grp-dl">
-        <button class="btn ghost sm dl" data-dept="${esc(dept)}" data-fmt="csv">Download CSV</button>
-        <button class="btn ghost sm dl" data-dept="${esc(dept)}" data-fmt="json">Download JSON</button></div>` : "";
-    return `<div class="grp${open}" data-dept="${esc(dept)}">
+        <button class="btn ghost sm dl" data-kind="dept" data-key="${esc(dept)}" data-fmt="csv">Download CSV</button>
+        <button class="btn ghost sm dl" data-kind="dept" data-key="${esc(dept)}" data-fmt="json">Download JSON</button></div>` : "";
+    return `<div class="grp${open}" data-kind="dept" data-key="${esc(dept)}">
         <button class="grp-head"><span class="chev">▶</span>${esc(dept)}<span class="count">${list.length}</span></button>
+        <div class="grp-body">${dl}${body}</div></div>`;
+  }).join("") || `<p class="note">No authenticated letters yet.</p>`;
+}
+
+/* ---------- proximity (location) grouping ---------- */
+// Ordered most-specific first: Kampala suburbs/divisions, then towns/cities, then bare "Kampala".
+const AREAS = [
+  ["Industrial Area, Kampala", ["industrial area"]],
+  ["Nakawa, Kampala", ["nakawa"]], ["Bugolobi, Kampala", ["bugolobi"]],
+  ["Ntinda, Kampala", ["ntinda"]], ["Naguru, Kampala", ["naguru"]],
+  ["Kololo, Kampala", ["kololo"]], ["Nakasero, Kampala", ["nakasero"]],
+  ["Bukoto, Kampala", ["bukoto"]], ["Kamwokya, Kampala", ["kamwokya"]],
+  ["Wandegeya, Kampala", ["wandegeya"]], ["Makerere, Kampala", ["makerere"]],
+  ["Mulago, Kampala", ["mulago"]], ["Kawempe, Kampala", ["kawempe"]],
+  ["Kalerwe, Kampala", ["kalerwe"]], ["Bwaise, Kampala", ["bwaise"]],
+  ["Kansanga, Kampala", ["kansanga"]], ["Ggaba, Kampala", ["ggaba","gaba"]],
+  ["Muyenga, Kampala", ["muyenga"]], ["Kabalagala, Kampala", ["kabalagala"]],
+  ["Namuwongo, Kampala", ["namuwongo"]], ["Nsambya, Kampala", ["nsambya"]],
+  ["Kibuli, Kampala", ["kibuli"]], ["Katwe, Kampala", ["katwe"]],
+  ["Kibuye, Kampala", ["kibuye"]], ["Lugogo, Kampala", ["lugogo"]],
+  ["Rubaga, Kampala", ["rubaga","lubaga"]], ["Mengo, Kampala", ["mengo"]],
+  ["Natete, Kampala", ["natete","nateete"]], ["Mutundwe, Kampala", ["mutundwe"]],
+  ["Kireka, Kampala", ["kireka"]], ["Bweyogerere, Wakiso", ["bweyogerere"]],
+  ["Banda, Kampala", ["banda"]], ["Kyambogo, Kampala", ["kyambogo"]],
+  ["Kiwatule, Kampala", ["kiwatule"]], ["Kisaasi, Kampala", ["kisaasi","kisasi"]],
+  ["Najjera, Wakiso", ["najjera","najera"]], ["Namugongo, Wakiso", ["namugongo"]],
+  ["Kyaliwajjala, Wakiso", ["kyaliwajjala"]], ["Nansana, Wakiso", ["nansana"]],
+  ["Kasangati, Wakiso", ["kasangati"]], ["Gayaza, Wakiso", ["gayaza"]],
+  ["Kyengera, Wakiso", ["kyengera"]], ["Kakiri, Wakiso", ["kakiri"]],
+  ["Entebbe", ["entebbe"]], ["Wakiso", ["wakiso"]], ["Mukono", ["mukono"]],
+  ["Njeru", ["njeru"]], ["Jinja", ["jinja","kakira"]], ["Iganga", ["iganga"]],
+  ["Kamuli", ["kamuli"]], ["Mbale", ["mbale"]], ["Tororo", ["tororo"]],
+  ["Busia", ["busia"]], ["Soroti", ["soroti"]], ["Kumi", ["kumi"]],
+  ["Lira", ["lira"]], ["Gulu", ["gulu"]], ["Kitgum", ["kitgum"]],
+  ["Arua", ["arua"]], ["Nebbi", ["nebbi"]], ["Masaka", ["masaka"]],
+  ["Mbarara", ["mbarara"]], ["Bushenyi", ["bushenyi"]], ["Ntungamo", ["ntungamo"]],
+  ["Kabale", ["kabale"]], ["Kisoro", ["kisoro"]], ["Kasese", ["kasese"]],
+  ["Fort Portal", ["fort portal","fortportal"]], ["Hoima", ["hoima"]],
+  ["Masindi", ["masindi"]], ["Mubende", ["mubende"]], ["Mityana", ["mityana"]],
+  ["Luweero", ["luweero","luwero"]], ["Mpigi", ["mpigi"]], ["Mukono", ["mukono"]],
+  ["Kayunga", ["kayunga"]], ["Moroto", ["moroto"]], ["Kapchorwa", ["kapchorwa"]],
+  ["Pallisa", ["pallisa"]], ["Kampala (area not specified)", ["kampala"]]
+];
+function localityOf(rec){
+  const text = ((rec.org||"") + " " + (rec.orgAddr||"")).toLowerCase();
+  for (const [canon, aliases] of AREAS){
+    for (const a of aliases){
+      const re = new RegExp("(^|[^a-z])" + a.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") + "([^a-z]|$)");
+      if (re.test(text)) return canon;
+    }
+  }
+  return "Unassigned — needs review";
+}
+function proximityGroups(){
+  const map = new Map();                 // each student lands in exactly one area (no repetition)
+  recCache.forEach(r => {
+    const key = localityOf(r);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(r);
+  });
+  // order: largest first, "Unassigned" always last
+  return [...map.entries()].sort((a,b) => {
+    if (a[0].startsWith("Unassigned")) return 1;
+    if (b[0].startsWith("Unassigned")) return -1;
+    return b[1].length - a[1].length || a[0].localeCompare(b[0]);
+  });
+}
+function areaRowHtml(r){
+  return `<tr><td>${esc(r.name)}</td><td>${esc(r.reg)}</td>
+    <td>${esc(CONFIG.departments[r.dept]?.code || r.dept)}</td><td>${esc(r.org)}</td>
+    <td>${esc((r.orgAddr||"").replace(/\n/g,", "))}</td></tr>`;
+}
+function renderByProximity(){
+  const q = $("#recSearch").value.trim().toLowerCase();
+  const groups = proximityGroups();
+  const areas = groups.filter(g => !g[0].startsWith("Unassigned")).length;
+  const unassigned = (groups.find(g => g[0].startsWith("Unassigned")) || [,[]])[1].length;
+  $("#recSummary").innerHTML =
+    `<p class="sumline">${recCache.length} authenticated letter(s) grouped into <b>${areas}</b> location area(s) with no student repeated` +
+    (unassigned ? `; <b>${unassigned}</b> need a recognisable address and sit under “Unassigned”.` : ".") + `</p>` +
+    `<div class="areabar">` + groups.map(g =>
+        `<span class="chip"><b>${esc(g[0])}</b><span class="n">${g[1].length}</span></span>`).join("") + `</div>`;
+  $("#recGroups").innerHTML = groups.map(([key,list]) => {
+    const shown = list.filter(r => !q || [r.name,r.reg,r.org,r.ref,r.orgAddr].join(" ").toLowerCase().includes(q));
+    if (q && !shown.length) return "";
+    const open = openAreas.has(key) ? " open" : "";
+    const body = `<table><thead><tr><th>Student</th><th>Reg no</th><th>Dept</th><th>Placement at</th><th>Address</th></tr></thead><tbody>${shown.map(areaRowHtml).join("")}</tbody></table>`;
+    const dl = `<div class="grp-dl">
+        <button class="btn ghost sm dl" data-kind="area" data-key="${esc(key)}" data-fmt="csv">Download CSV</button>
+        <button class="btn ghost sm dl" data-kind="area" data-key="${esc(key)}" data-fmt="json">Download JSON</button></div>`;
+    return `<div class="grp${open}" data-kind="area" data-key="${esc(key)}">
+        <button class="grp-head"><span class="chev">▶</span>${esc(key)}<span class="count">${list.length}</span></button>
         <div class="grp-body">${dl}${body}</div></div>`;
   }).join("") || `<p class="note">No authenticated letters yet.</p>`;
 }
 $("#recSearch").oninput = renderRecords;
 $("#recGroups").addEventListener("click", e => {
-  const head = e.target.closest(".grp-head");
-  if (head){ const dept = head.parentElement.dataset.dept;
-    openDepts.has(dept) ? openDepts.delete(dept) : openDepts.add(dept);
-    head.parentElement.classList.toggle("open"); return; }
   const dl = e.target.closest(".dl");
-  if (dl) downloadDept(dl.dataset.dept, dl.dataset.fmt);
+  if (dl){ downloadGroup(dl.dataset.kind, dl.dataset.key, dl.dataset.fmt); return; }
+  const head = e.target.closest(".grp-head");
+  if (head){ const g = head.parentElement, key = g.dataset.key;
+    const set = g.dataset.kind === "area" ? openAreas : openDepts;
+    set.has(key) ? set.delete(key) : set.add(key);
+    g.classList.toggle("open"); }
+});
+// view toggle
+$("#viewToggle").addEventListener("click", e => {
+  const b = e.target.closest("button[data-view]"); if (!b) return;
+  recView = b.dataset.view;
+  document.querySelectorAll("#viewToggle button").forEach(x => x.classList.toggle("on", x === b));
+  $("#recSearch").placeholder = recView === "area" ? "Search within areas" : "Search within departments";
+  $("#recHint").textContent = recView === "area"
+    ? "Students are grouped by the location of their placement, each appearing once. Click an area to view and download its list."
+    : "Only authenticated letters appear here, straight from Google Sheets. Click a department to view and download its letters.";
+  renderRecords();
 });
 function download(name,text,type){ const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text],{type})); a.download = name; a.click(); }
 function slug(s){ return s.replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,""); }
-function downloadDept(dept, fmt){
-  const list = deptRecords(dept);
-  const code = CONFIG.departments[dept]?.code || slug(dept);
-  if (fmt === "json") return download(`placement-${code}.json`, JSON.stringify(list, null, 2), "application/json");
-  const cols = ["ref","issued","authenticatedAt","name","reg","dept","prog","level","period","org"];
-  const csv = [cols.join(",")].concat(list.map(r => cols.map(c => `"${String(r[c]||"").replace(/"/g,'""')}"`).join(","))).join("\n");
-  download(`placement-${code}.csv`, csv, "text/csv");
+function recCsv(list, extra){
+  const cols = ["ref","issued","authenticatedAt","name","reg","dept","prog","level","period","org","orgAddr"].concat(extra?["area"]:[]);
+  const line = r => cols.map(c => `"${String((c==="area"?localityOf(r):r[c])||"").replace(/\n/g," ").replace(/"/g,'""')}"`).join(",");
+  return [cols.join(",")].concat(list.map(line)).join("\n");
 }
+function downloadGroup(kind, key, fmt){
+  const list = kind === "area"
+    ? recCache.filter(r => localityOf(r) === key)
+    : deptRecords(key);
+  const code = kind === "area" ? slug(key) : (CONFIG.departments[key]?.code || slug(key));
+  if (fmt === "json") return download(`placement-${code}.json`, JSON.stringify(list, null, 2), "application/json");
+  download(`placement-${code}.csv`, recCsv(list, kind === "area"), "text/csv");
+}
+$("#btnDownAll").onclick = () => {
+  const withArea = recView === "area";
+  download(withArea ? "placement-by-location.csv" : "placement-all.csv", recCsv(recCache, withArea), "text/csv");
+};
 $("#btnJsonAll").onclick = () => download("placement-records-backup.json", JSON.stringify(recCache, null, 2), "application/json");
 $("#impJson").onchange = e => {
   const file = e.target.files[0]; if (!file) return;
